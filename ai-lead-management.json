@@ -1,0 +1,826 @@
+{
+  "name": "AI Lead Management & Smart Response System",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Get in Touch",
+        "formDescription": "Tell us what you need and we'll get back to you within minutes.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name",
+              "placeholder": "Your full name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "you@company.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company",
+              "placeholder": "Company name (optional)"
+            },
+            {
+              "fieldLabel": "Phone",
+              "placeholder": "+63 9XX XXX XXXX"
+            },
+            {
+              "fieldLabel": "Budget",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Under $1,000"
+                  },
+                  {
+                    "option": "$1,000 - $5,000"
+                  },
+                  {
+                    "option": "$5,000 - $20,000"
+                  },
+                  {
+                    "option": "$20,000+"
+                  },
+                  {
+                    "option": "Not sure yet"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Timeline",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "ASAP"
+                  },
+                  {
+                    "option": "Within 1 month"
+                  },
+                  {
+                    "option": "1-3 months"
+                  },
+                  {
+                    "option": "Just exploring"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Message",
+              "fieldType": "textarea",
+              "placeholder": "How can we help?",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "path": "lead-form"
+        }
+      },
+      "id": "30da5d5c-96d0-4428-ade9-0e4f455f24b9",
+      "name": "Receive New Lead",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "name",
+              "type": "string",
+              "value": "={{ ($json['Name'] || '').trim() }}"
+            },
+            {
+              "id": "n2",
+              "name": "email",
+              "type": "string",
+              "value": "={{ ($json['Email'] || '').trim().toLowerCase() }}"
+            },
+            {
+              "id": "n3",
+              "name": "company",
+              "type": "string",
+              "value": "={{ $json['Company'] || 'N/A' }}"
+            },
+            {
+              "id": "n4",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $json['Phone'] || '' }}"
+            },
+            {
+              "id": "n5",
+              "name": "budget",
+              "type": "string",
+              "value": "={{ $json['Budget'] || 'Not specified' }}"
+            },
+            {
+              "id": "n6",
+              "name": "timeline",
+              "type": "string",
+              "value": "={{ $json['Timeline'] || 'Not specified' }}"
+            },
+            {
+              "id": "n7",
+              "name": "message",
+              "type": "string",
+              "value": "={{ ($json['Message'] || '').trim() }}"
+            },
+            {
+              "id": "n8",
+              "name": "source",
+              "type": "string",
+              "value": "n8n Form"
+            },
+            {
+              "id": "n9",
+              "name": "received_at",
+              "type": "string",
+              "value": "={{ $json.submittedAt || $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c56de840-968d-4ae5-bd6d-d4b0d4eee9b6",
+      "name": "Normalize Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an expert B2B sales lead qualification assistant. Analyze the incoming lead and score it.\n\nScoring guide (0-100):\n- Clear buying intent, defined budget, near-term timeline, decision-maker language = HOT (70-100)\n- Some interest but vague budget/timeline, researching options = WARM (40-69)\n- Generic question, no budget, no timeline, student/job seeker/spam = COLD (0-39)\n\nRespond ONLY with valid JSON in this exact format:\n{\n  \"lead_score\": number,\n  \"lead_status\": \"hot\" | \"warm\" | \"cold\",\n  \"intent\": \"short phrase describing what they want\",\n  \"summary\": \"one-sentence summary of the lead\",\n  \"reasoning\": \"why you gave this score\",\n  \"recommended_action\": \"next step for the sales team\"\n}",
+              "role": "system"
+            },
+            {
+              "content": "=Lead details:\nName: {{ $json.name }}\nEmail: {{ $json.email }}\nCompany: {{ $json.company }}\nPhone: {{ $json.phone }}\nBudget: {{ $json.budget }}\nTimeline: {{ $json.timeline }}\nSource: {{ $json.source }}\nMessage: {{ $json.message }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "b279b488-6e83-4fd3-ab80-fa21d77ce9a2",
+      "name": "Analyze & Qualify Lead",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        384,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.message.content.lead_status }}",
+              "rightValue": "hot",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.message.content.lead_score }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a681109b-882c-47c8-9269-e154eebf5982",
+      "name": "Is Lead Hot?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Received At": "={{ $('Normalize Lead Data').item.json.received_at }}",
+            "Name": "={{ $('Normalize Lead Data').item.json.name }}",
+            "Email": "={{ $('Normalize Lead Data').item.json.email }}",
+            "Company": "={{ $('Normalize Lead Data').item.json.company }}",
+            "Phone": "={{ $('Normalize Lead Data').item.json.phone }}",
+            "Budget": "={{ $('Normalize Lead Data').item.json.budget }}",
+            "Timeline": "={{ $('Normalize Lead Data').item.json.timeline }}",
+            "Source": "={{ $('Normalize Lead Data').item.json.source }}",
+            "Message": "={{ $('Normalize Lead Data').item.json.message }}",
+            "Lead Score": "={{ $('Analyze & Qualify Lead').item.json.message.content.lead_score }}",
+            "Lead Status": "={{ $('Analyze & Qualify Lead').item.json.message.content.lead_status }}",
+            "Intent": "={{ $('Analyze & Qualify Lead').item.json.message.content.intent }}",
+            "Summary": "={{ $('Analyze & Qualify Lead').item.json.message.content.summary }}",
+            "Recommended Action": "={{ $('Analyze & Qualify Lead').item.json.message.content.recommended_action }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Received At",
+              "displayName": "Received At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommended Action",
+              "displayName": "Recommended Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c727e40d-496e-4157-ad3f-744e253559a4",
+      "name": "Save Hot Lead to CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1088,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a friendly, senior sales representative. Write a short, personalized reply email to a HOT lead who is ready to buy.\n\nGoals:\n- Thank them by first name for reaching out.\n- Reflect their specific need back to them in one sentence, so they know we read their message.\n- Show confidence that we can help, without hype or big promises.\n- Propose a concrete next step: a 15-30 minute call this week. Share this booking link so they can pick a time: https://calendly.com/your-booking-link\n\nRules:\n- Keep it under 150 words.\n- Warm and professional tone, no hype, no exclamation overload.\n- Use short paragraphs (1-3 sentences each), separated by a blank line.\n- Write the link as plain text, not markdown.\n- Subject line: short, personal, and specific to their need (no \"RE:\", no emojis).\n- Sign off as:\nThe Sales Team\n\nRespond ONLY with valid JSON: {\"subject\": \"...\", \"body\": \"...\"}",
+              "role": "system"
+            },
+            {
+              "content": "=Name: {{ $('Normalize Lead Data').item.json.name }}\nCompany: {{ $('Normalize Lead Data').item.json.company }}\nTheir message: {{ $('Normalize Lead Data').item.json.message }}\nBudget: {{ $('Normalize Lead Data').item.json.budget }}\nTimeline: {{ $('Normalize Lead Data').item.json.timeline }}\nAI summary: {{ $('Analyze & Qualify Lead').item.json.message.content.summary }}\nIntent: {{ $('Analyze & Qualify Lead').item.json.message.content.intent }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "2cbad7c4-3f58-40e4-87b7-e1085c464a97",
+      "name": "Generate Sales Reply",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1408,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Normalize Lead Data').item.json.email }}",
+        "subject": "={{ $json.message.content.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.message.content.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "40b3b6c0-3fde-4ace-b1ce-2e6a71ea505a",
+      "name": "Send Personalized Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1728,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Normalize Lead Data').item.json.email }}",
+        "subject": "={{ $json.message.content.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.message.content.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "52305f53-09b6-460f-be52-04eb9931bdb4",
+      "name": "Send Nurture Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1728,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a helpful, low-pressure customer success rep. Write a short nurture email to a WARM or COLD lead who is still exploring.\n\nGoals:\n- Thank them for reaching out.\n- Answer or acknowledge their question.\n- Offer one genuinely useful tip related to their need, and share this link for more info: https://your-website.com\n- Invite them to reply whenever they're ready.\n\nRules:\n- No hard sell.\n- Keep it under 130 words.\n- Use short paragraphs (1-3 sentences each), separated by a blank line.\n- Write the link as plain text, not markdown.\n- Sign off as:\nThe Team\n\nRespond ONLY with valid JSON: {\"subject\": \"...\", \"body\": \"...\"}",
+              "role": "system"
+            },
+            {
+              "content": "=Name: {{ $('Normalize Lead Data').item.json.name }}\nCompany: {{ $('Normalize Lead Data').item.json.company }}\nTheir message: {{ $('Normalize Lead Data').item.json.message }}\nLead status: {{ $('Analyze & Qualify Lead').item.json.message.content.lead_status }}\nAI summary: {{ $('Analyze & Qualify Lead').item.json.message.content.summary }}\nIntent: {{ $('Analyze & Qualify Lead').item.json.message.content.intent }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "1a75a8e1-b9d9-40f0-826c-0b2d2b14571f",
+      "name": "Generate Nurture Reply",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1408,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Received At": "={{ $('Normalize Lead Data').item.json.received_at }}",
+            "Name": "={{ $('Normalize Lead Data').item.json.name }}",
+            "Email": "={{ $('Normalize Lead Data').item.json.email }}",
+            "Company": "={{ $('Normalize Lead Data').item.json.company }}",
+            "Phone": "={{ $('Normalize Lead Data').item.json.phone }}",
+            "Budget": "={{ $('Normalize Lead Data').item.json.budget }}",
+            "Timeline": "={{ $('Normalize Lead Data').item.json.timeline }}",
+            "Source": "={{ $('Normalize Lead Data').item.json.source }}",
+            "Message": "={{ $('Normalize Lead Data').item.json.message }}",
+            "Lead Score": "={{ $json.message.content.lead_score }}",
+            "Lead Status": "={{ $json.message.content.lead_status }}",
+            "Intent": "={{ $json.message.content.intent }}",
+            "Summary": "={{ $json.message.content.summary }}",
+            "Recommended Action": "={{ $json.message.content.recommended_action }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Received At",
+              "displayName": "Received At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recommended Action",
+              "displayName": "Recommended Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "03169391-83e4-452b-af74-b86a7e168129",
+      "name": "Save Warm/Cold Lead to CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1088,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=🔥 NEW HOT LEAD!\n\n👤 {{ $('Normalize Lead Data').item.json.name }}\n🏢 {{ $('Normalize Lead Data').item.json.company }}\n📧 {{ $('Normalize Lead Data').item.json.email }}\n📞 {{ $('Normalize Lead Data').item.json.phone }}\n💰 {{ $('Normalize Lead Data').item.json.budget }}\n⏰ {{ $('Normalize Lead Data').item.json.timeline }}\n\n⭐ Score: {{ $('Analyze & Qualify Lead').item.json.message.content.lead_score }}/100\n🎯 Intent: {{ $('Analyze & Qualify Lead').item.json.message.content.intent }}\n📝 {{ $('Analyze & Qualify Lead').item.json.message.content.summary }}\n\n✅ Next step: {{ $('Analyze & Qualify Lead').item.json.message.content.recommended_action }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "74552b25-4866-453b-bd8f-841bbae10a5e",
+      "name": "Send Lead Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1952,
+        576
+      ]
+    }
+  ],
+  "connections": {
+    "Receive New Lead": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Analyze & Qualify Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze & Qualify Lead": {
+      "main": [
+        [
+          {
+            "node": "Is Lead Hot?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Lead Hot?": {
+      "main": [
+        [
+          {
+            "node": "Save Hot Lead to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Warm/Cold Lead to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Hot Lead to CRM": {
+      "main": [
+        [
+          {
+            "node": "Generate Sales Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Sales Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Personalized Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Personalized Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Lead Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Nurture Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Nurture Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Warm/Cold Lead to CRM": {
+      "main": [
+        [
+          {
+            "node": "Generate Nurture Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
