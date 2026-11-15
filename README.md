@@ -44,4 +44,4 @@ n8n · OpenAI · Google Sheets · Gmail · Telegram
 
 ---
 
-Built by **Jeth Divina**, AI Automation Specialist · [LinkedIn](https://www.linkedin.com/in/jeth-d-b18459244/)
+Built by **Jeth Divina**, AI Automation Specialist · [LinkedIn](https://www.linkedin.com/in/jethdivina/)
